@@ -16,8 +16,6 @@ data/
 #ignore venv
 venv/
 
-#banned words list 
-banned_words.py
 *.pyc
 
 adminHashing.py
