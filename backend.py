@@ -6,6 +6,9 @@ import requests
 import sqlite3
 import bcrypt
 import random, string
+import socket
+import struct
+import threading
 load_dotenv()
 
 webhook = os.getenv("DISCORD_WEBHOOK")
@@ -52,6 +55,81 @@ app = Flask(
 
 # Enable CORS (safe for dev, adjust for prod)
 CORS(app)
+
+# Robot bridge configuration/state
+ROBOT_LISTEN_HOST = os.getenv("ROBOT_LISTEN_HOST", "0.0.0.0")
+ROBOT_LISTEN_PORT = int(os.getenv("ROBOT_LISTEN_PORT", "3000"))
+
+robot_lock = threading.Lock()
+robot_socket = None
+robot_connected = False
+robot_addr = None
+
+
+def sanitize_keys(keys):
+    opposites = [
+        ("w", "s"),
+        ("a", "d"),
+        ("arrowup", "arrowdown"),
+        ("arrowleft", "arrowright"),
+    ]
+
+    normalized = set(k.lower().strip() for k in keys if k and k.strip())
+    for k1, k2 in opposites:
+        if k1 in normalized and k2 in normalized:
+            normalized.discard(k1)
+            normalized.discard(k2)
+    return list(normalized)
+
+
+def start_robot_server():
+    def accept_loop():
+        global robot_socket, robot_connected, robot_addr
+
+        server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        server.bind((ROBOT_LISTEN_HOST, ROBOT_LISTEN_PORT))
+        server.listen(1)
+        print(f"Robot TCP server listening on {ROBOT_LISTEN_HOST}:{ROBOT_LISTEN_PORT}")
+
+        while True:
+            conn_socket, addr = server.accept()
+            with robot_lock:
+                if robot_socket:
+                    try:
+                        robot_socket.close()
+                    except OSError:
+                        pass
+                robot_socket = conn_socket
+                robot_connected = True
+                robot_addr = addr
+            print(f"Robot connected from {addr[0]}:{addr[1]}")
+
+    thread = threading.Thread(target=accept_loop, daemon=True)
+    thread.start()
+
+
+def send_robot_command(command_text):
+    global robot_socket, robot_connected, robot_addr
+
+    payload = command_text.encode("utf-8")
+    length_prefix = struct.pack(">I", len(payload))
+
+    with robot_lock:
+        if not robot_socket or not robot_connected:
+            return False, "robot_disconnected"
+        try:
+            robot_socket.sendall(length_prefix + payload)
+            return True, "sent"
+        except OSError as e:
+            try:
+                robot_socket.close()
+            except OSError:
+                pass
+            robot_socket = None
+            robot_connected = False
+            robot_addr = None
+            return False, f"socket_error: {e}"
 
 
 @app.route("/api/message", methods=["POST"])
@@ -316,5 +394,43 @@ def get_actions():
         }
         for r in rows
     ])
+
+
+@app.route("/api/robot-status", methods=["GET"])
+def robot_status():
+    with robot_lock:
+        status = {
+            "connected": robot_connected,
+            "address": f"{robot_addr[0]}:{robot_addr[1]}" if robot_addr else None,
+            "listen_host": ROBOT_LISTEN_HOST,
+            "listen_port": ROBOT_LISTEN_PORT,
+        }
+    return jsonify(status)
+
+
+@app.route("/api/robot-command", methods=["POST"])
+def robot_command():
+    data = request.get_json(silent=True) or {}
+    raw_command = data.get("command")
+
+    if not raw_command or not isinstance(raw_command, str):
+        return jsonify({"error": "Missing required string field: command"}), 400
+
+    command_to_send = raw_command.strip()
+    if "+" in command_to_send:
+        command_to_send = "+".join(sanitize_keys(command_to_send.split("+")))
+
+    if not command_to_send:
+        return jsonify({"error": "Command became empty after sanitization"}), 400
+
+    ok, status = send_robot_command(command_to_send)
+    response = {
+        "command": command_to_send,
+        "status": status,
+    }
+    return jsonify(response), (200 if ok else 503)
+
+
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5001, debug=False)
+    start_robot_server()
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", "3001")), debug=False)
