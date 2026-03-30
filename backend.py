@@ -140,7 +140,7 @@ def receive_message():
     # print("Received from frontend:", text)
     SEND_AUDIT_LOG(f"Received message from frontend: {text}", False)
     return jsonify({
-        "reply": f"Backend received: {text}"
+        "reply": f"Thank you for your message: {text}"
     })
 
 @app.route("/")
@@ -232,12 +232,6 @@ def create_test_payment():
     data = request.get_json()
     cart = data.get("items", {})
 
-    # delete expired codes
-    conn.execute("""
-        DELETE FROM valid_codes
-        WHERE created_at < datetime('now','-24 hours')
-    """)
-
     # check inventory first to make sure we have enough of said product
     for product_id, qty in cart.items():
         qty = int(qty)
@@ -304,7 +298,7 @@ def get_code():
         SELECT code
         FROM valid_codes
         WHERE stripe_session_id = ?
-        AND created_at >= datetime('now','-24 hours')
+        AND created_at >= datetime('now','-1 day') AND is_used = 0
         """,
         (session_id,)
     ).fetchone()
@@ -372,7 +366,7 @@ def update_inventory():
         VALUES (?, 1)
     """, (username,))
     conn.commit()
-
+    SEND_AUDIT_LOG(f"{username} updated inventory for product {product_id}", False)
     return jsonify({"success": True})
 
 @app.route("/api/get-actions", methods=["GET"])

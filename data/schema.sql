@@ -27,3 +27,10 @@ CREATE TABLE valid_codes(
     stripe_session_id TEXT UNIQUE,
     is_used INTEGER DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
+
+CREATE TRIGGER update_valid_codes AFTER INSERT ON valid_codes 
+FOR EACH ROW
+BEGIN 
+    DELETE FROM valid_codes WHERE created_at < datetime('now', '-1 day');
+    DELETE FROM valid_codes WHERE is_used = 1;
+END;
