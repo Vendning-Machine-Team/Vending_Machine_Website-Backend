@@ -1,0 +1,13 @@
+[Unit]
+Description=Flask Backend
+After=network.target
+
+[Service]
+User=ubuntu
+WorkingDirectory=/home/ubuntu/Vending-Machine-Robot
+ExecStart=/home/ubuntu/.virtualenvs/Vending_Machine_Website-Backend/bin/python /home/ubuntu/Vending_Machine_Website-Backend/backend.py
+EnvironmentFile=/home/ubuntu/Vending_Machine_Website-Backend/.env
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
