@@ -171,13 +171,6 @@ def admin_login():
     password = data.get("password")
     conn = get_connection()
     cursor = conn.cursor()
-    #this makes sure that admins are considered inactive (prevents closing browser before logging out problems)
-    cursor.execute("""
-        UPDATE administrators
-        SET is_active = 0
-        WHERE last_seen < datetime('now', '-2 minutes')
-        """)
-    conn.commit()
     
     #allows for checking username and password
     cursor.execute("""
@@ -192,16 +185,15 @@ def admin_login():
         # mark admin as active
         cursor.execute("""
             UPDATE administrators
-            SET is_active = 1,
-                last_seen = CURRENT_TIMESTAMP
+            SET last_seen = CURRENT_TIMESTAMP
             WHERE username = ?
             """, (username,))
         conn.commit()
         return jsonify({
             "success": True,
             "username": user[0],
-            "first_name": user[1],
-            "last_name": user[2]
+            "first_name": user[2],
+            "last_name": user[3]
         })
     else:
         return jsonify({"success": False})
@@ -215,7 +207,7 @@ def admin_logout():
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "UPDATE administrators SET is_active = 0 WHERE username = ?",
+        "UPDATE administrators SET last_seen = CURRENT_TIMESTAMP WHERE username = ?",
         (username,)
     )
     conn.commit()
@@ -362,7 +354,7 @@ def update_inventory():
     data = request.get_json()
     conn = get_connection()
     cursor = conn.cursor()
-
+    
     product_id = data.get("product_id")
     new_price = data.get("price")
     new_inventory = data.get("inventory")
@@ -403,7 +395,35 @@ def get_actions():
         }
         for r in rows
     ])
+@app.route("/api/update-activity", methods=["POST"])
+def update_activity():
+    data = request.get_json()
+    username = data.get("username")
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE administrators
+        SET last_seen = CURRENT_TIMESTAMP
+        WHERE username = ?
+    """, (username,))
+    conn.commit()
+    return jsonify({"success": True})
 
+@app.route("/api/is-admin-active", methods=["GET"])
+def is_admin_active():
+    username = request.args.get("username")
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT last_seen > datetime('now','-2 minutes') FROM administrators WHERE username = ?
+    """, (username,))
+    result = cursor.fetchone()
+    if result is None:
+        return jsonify({"active": False}), 404
+
+    is_active = bool(result[0])
+
+    return jsonify({"active": is_active}), 200
 
 @app.route("/api/robot-status", methods=["GET"])
 def robot_status():
