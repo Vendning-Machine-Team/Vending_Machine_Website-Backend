@@ -9,9 +9,13 @@ import random, string
 import socket
 import struct
 import threading
-load_dotenv()
+import stripe
 
+load_dotenv()
+BASE_URL = os.getenv("BASE_URL")
+stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 webhook = os.getenv("DISCORD_WEBHOOK")
+
 def get_connection():
     return sqlite3.connect("data/vm.db", check_same_thread=False)
 
@@ -262,10 +266,10 @@ def create_test_payment():
             }), 400
 
     # generate payment code (needs fixing when we do stripe stuff)
+    session_id = generate_session_id()
     while True:
         code = f"{random.randint(0,9999):04d}"
-        session_id = generate_session_id()
-
+    
         try:
             conn.execute("""
                 INSERT INTO valid_codes (code, stripe_session_id)
@@ -458,6 +462,100 @@ def robot_command():
         "status": status,
     }
     return jsonify(response), (200 if ok else 503)
+
+#Backend for the payment system (stripe stuff will go here eventually, for now it's just testing stuff)
+##########################################
+
+
+@app.route("/api/create-checkout-session", methods=["POST"])
+def create_checkout_session():
+    data = request.get_json()
+    cart = data.get("items", {})
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    try:
+        # 1. CHECK INVENTORY
+        total_amount = 0
+
+        for product_id, qty in cart.items():
+            qty = int(qty)
+            if qty <= 0:
+                continue
+
+            cursor.execute(
+                "SELECT inventory, price, name FROM products WHERE product_id = ?",
+                (product_id,)
+            )
+            result = cursor.fetchone()
+
+            if result is None:
+                return jsonify({"error": "Product not found"}), 400
+
+            inventory, price, name = result
+
+            if qty > inventory:
+                return jsonify({
+                    "error": f"Not enough inventory for product {product_id}"
+                }), 400
+
+            total_amount += int(price * 100) * qty  # convert to cents
+
+        # 2. SUBTRACT INVENTORY (race-condition safe)
+        for product_id, qty in cart.items():
+            qty = int(qty)
+            if qty <= 0:
+                continue
+
+            cursor.execute("""
+                UPDATE products
+                SET inventory = inventory - ?
+                WHERE product_id = ? AND inventory >= ?
+            """, (qty, product_id, qty))
+
+            if cursor.rowcount == 0:
+                conn.rollback()
+                return jsonify({"error": "Item just sold out"}), 400
+
+        # 3. CREATE STRIPE SESSION
+        session = stripe.checkout.Session.create(
+            mode="payment",
+            line_items=[{
+                "price_data": {
+                    "currency": "usd",
+                    "product_data": {
+                        "name": "Vending Machine Purchase",
+                    },
+                    "unit_amount": total_amount,  # total in cents
+                },
+                "quantity": 1,
+            }],
+            success_url=f"{BASE_URL}/pages/paymentCode.html?session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{BASE_URL}/pages/paymentError.html",
+        )
+
+        # 4. GENERATE CODE + STORE STRIPE SESSION
+        while True:
+            code = f"{random.randint(0,9999):04d}"
+            try:
+                cursor.execute("""
+                    INSERT INTO valid_codes (code, stripe_session_id)
+                    VALUES (?, ?)
+                """, (code, session.id))
+
+                conn.commit()
+                break
+            except sqlite3.IntegrityError:
+                continue
+
+        return jsonify({
+            "url": session.url
+        })
+
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": str(e)}), 400
 
 
 if __name__ == "__main__":
