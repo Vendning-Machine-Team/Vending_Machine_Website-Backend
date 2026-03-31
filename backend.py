@@ -218,7 +218,7 @@ def admin_logout():
     return jsonify({"success": True})
 
 
-#TODO: remove this function once stripe is implemented (this is purely for testing purposes, it generates a "stripe like" code)
+''' TOD: remove this function once stripe is implemented (this is purely for testing purposes, it generates a "stripe like" code)
 def generate_session_id():
     return "test_" + "".join(random.choices(string.ascii_letters + string.digits, k=32))
 
@@ -283,6 +283,7 @@ def create_test_payment():
 
         except sqlite3.IntegrityError:
             continue
+            '''
 
 
 #this gets the code associated with a stripe session id, so that we can provide users with their code after they pay  
