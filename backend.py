@@ -12,8 +12,8 @@ import threading
 load_dotenv()
 
 webhook = os.getenv("DISCORD_WEBHOOK")
-conn = sqlite3.connect("data/vm.db",check_same_thread=False)
-cursor = conn.cursor()
+def get_connection():
+    return sqlite3.connect("data/vm.db", check_same_thread=False)
 
 ##############################################################
 #Note from Samuel: Ensure that banned_words.py is in the same folder or else you'll have to change the destination as to where the import request is fulfilled.
@@ -169,7 +169,7 @@ def admin_login():
 
     username = data.get("username")
     password = data.get("password")
-
+    conn = get_connection()
     cursor = conn.cursor()
     #this makes sure that admins are considered inactive (prevents closing browser before logging out problems)
     cursor.execute("""
@@ -212,6 +212,7 @@ def admin_logout():
     data = request.get_json()
     username = data.get("username")
 
+    conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
         "UPDATE administrators SET is_active = 0 WHERE username = ?",
@@ -231,7 +232,8 @@ def create_test_payment():
 
     data = request.get_json()
     cart = data.get("items", {})
-
+    conn = get_connection()
+    cursor = conn.cursor()
     # check inventory first to make sure we have enough of said product
     for product_id, qty in cart.items():
         qty = int(qty)
@@ -292,8 +294,10 @@ def create_test_payment():
 def get_code():
 
     session_id = request.args.get("session_id")
+    conn = get_connection()
+    cursor = conn.cursor()
 
-    result = conn.execute(
+    result = cursor.execute(
         """
         SELECT code
         FROM valid_codes
@@ -311,6 +315,8 @@ def get_code():
 #this is to get the products and display on the payment calculation (index.html) page
 @app.route("/api/products", methods=["GET"])
 def get_products_to_buy():
+    conn = get_connection()
+    cursor = conn.cursor()
     cursor.execute("SELECT product_id, name, price, inventory FROM products")
     rows = cursor.fetchall()
 
@@ -323,6 +329,8 @@ def get_products_to_buy():
 #get all the products for the dropdown menu
 @app.route("/api/get-products", methods=["GET"])
 def get_products():
+    conn = get_connection()
+    cursor = conn.cursor()
     cursor.execute("SELECT product_id, name FROM products")
     products = cursor.fetchall()
 
@@ -334,6 +342,9 @@ def get_products():
 #get the current price and inventory for the product (to display on the ui)
 @app.route("/api/get-inventory/<int:product_id>", methods=["GET"])
 def get_inventory(product_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+
     cursor.execute(
         "SELECT price, inventory FROM products WHERE product_id = ?",
         (product_id,)
@@ -349,6 +360,8 @@ def get_inventory(product_id):
 @app.route("/api/update-inventory", methods=["POST"])
 def update_inventory():
     data = request.get_json()
+    conn = get_connection()
+    cursor = conn.cursor()
 
     product_id = data.get("product_id")
     new_price = data.get("price")
@@ -371,6 +384,8 @@ def update_inventory():
 
 @app.route("/api/get-actions", methods=["GET"])
 def get_actions():
+    conn = get_connection()
+    cursor = conn.cursor()
     cursor.execute("""
         SELECT a.action_time, a.username, type_name
         FROM actions a
