@@ -287,7 +287,7 @@ def create_test_payment():
 
 
 #this gets the code associated with a stripe session id, so that we can provide users with their code after they pay  
-@app.route("/api/get-code")
+@app.route("/api/get-code", methods=["GET"])
 def get_code():
 
     session_id = request.args.get("session_id")
@@ -354,7 +354,7 @@ def get_inventory(product_id):
     })
 
 #update the inventory for when changes are made on the page
-@app.route("/api/update-inventory", methods=["POST"])
+@app.route("/api/update-inventory", methods=["POST","PUT","GET"])
 def update_inventory():
     data = request.get_json()
     conn = get_connection()
@@ -376,7 +376,9 @@ def update_inventory():
         VALUES (?, 1)
     """, (username,))
     conn.commit()
-    SEND_AUDIT_LOG(f"{username} updated inventory for product {product_id}", False)
+    cursor.execute("""SELECT name FROM products WHERE product_id = ?""", (product_id,))
+    product_name = cursor.fetchone()[0]
+    SEND_AUDIT_LOG(f"{username} updated inventory for product {product_name} to ${new_price}, inventory: {new_inventory}", False)
     return jsonify({"success": True})
 
 @app.route("/api/get-actions", methods=["GET"])
@@ -503,7 +505,7 @@ def create_checkout_session():
 
             total_amount += int(price * 100) * qty  # convert to cents
 
-        # 2. SUBTRACT INVENTORY (race-condition safe)
+        # 2. SUBTRACT INVENTORY (race-condition safe) --todo change this to only subtract once payment is successful, but for now this is easier to implement and test
         for product_id, qty in cart.items():
             qty = int(qty)
             if qty <= 0:
