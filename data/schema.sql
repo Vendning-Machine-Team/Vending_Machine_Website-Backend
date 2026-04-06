@@ -26,7 +26,9 @@ CREATE TABLE valid_codes(
     code TEXT PRIMARY KEY,
     stripe_session_id TEXT UNIQUE,
     is_used INTEGER DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    customer_email TEXT
+    );
 
 CREATE TRIGGER update_valid_codes AFTER INSERT ON valid_codes 
 FOR EACH ROW

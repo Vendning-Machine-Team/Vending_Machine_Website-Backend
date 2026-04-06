@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 import requests
 import sqlite3
 import bcrypt
+import json
 import random, string
 import socket
 import struct
@@ -14,6 +15,7 @@ import stripe
 load_dotenv()
 BASE_URL = os.getenv("BASE_URL")
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
 webhook = os.getenv("DISCORD_WEBHOOK")
 
 def get_connection():
@@ -296,7 +298,7 @@ def get_code():
 
     result = cursor.execute(
         """
-        SELECT code
+        SELECT code, customer_email
         FROM valid_codes
         WHERE stripe_session_id = ?
         AND created_at >= datetime('now','-1 day') AND is_used = 0
@@ -307,7 +309,11 @@ def get_code():
     if result is None:
         return jsonify({"error": "Code not found or expired"}), 404
 
-    return jsonify({"code": result[0]})
+    code, email = result[0], result[1]
+    out = {"code": code}
+    if email:
+        out["email"] = email
+    return jsonify(out)
 
 #this is to get the products and display on the payment calculation (index.html) page
 @app.route("/api/products", methods=["GET"])
@@ -453,7 +459,11 @@ def robot_command():
         return jsonify({"error": "Missing required string field: command"}), 400
 
     command_to_send = raw_command.strip()
-    if "+" in command_to_send:
+    # JSON payloads (e.g. queue entries with email) must not pass through key sanitization.
+    _looks_like_json = command_to_send.lstrip().startswith(
+        "{"
+    ) and command_to_send.rstrip().endswith("}")
+    if "+" in command_to_send and not _looks_like_json:
         command_to_send = "+".join(sanitize_keys(command_to_send.split("+")))
 
     if not command_to_send:
@@ -466,10 +476,176 @@ def robot_command():
     }
     return jsonify(response), (200 if ok else 503)
 
-#Backend for the payment system (stripe stuff will go here eventually, for now it's just testing stuff)
+# Backend for Stripe Checkout + webhook fulfillment (inventory + codes only after payment)
 ##########################################
 
+#this is so we can get the customer email so that they can log in on robot
+def _session_customer_email(session_obj):
+    """Email from Checkout Session (StripeObject or dict)."""
+    details = (
+        session_obj.get("customer_details")
+        if isinstance(session_obj, dict)
+        else getattr(session_obj, "customer_details", None)
+    )
+    if details:
+        em = (
+            details.get("email")
+            if isinstance(details, dict)
+            else getattr(details, "email", None)
+        )
+        if em:
+            return em
+    ce = (
+        session_obj.get("customer_email")
+        if isinstance(session_obj, dict)
+        else getattr(session_obj, "customer_email", None)
+    )
+    return ce or None
 
+# checks inventory, updates inventory, generates code, stores code with session_id
+def fulfill_checkout_session(session_id, cart_dict, customer_email):
+    """
+    Idempotent: one valid_codes row per stripe_session_id.
+    Uses BEGIN IMMEDIATE so concurrent webhook retries serialize on SQLite.
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    #make sure this wasn't already fulfilled in case of webhook retries
+    try:
+        cursor.execute("BEGIN IMMEDIATE")
+        cursor.execute(
+            "SELECT 1 FROM valid_codes WHERE stripe_session_id = ?",
+            (session_id,),
+        )
+        if cursor.fetchone():
+            conn.commit()
+            return True, "already_fulfilled"
+        # check inventory first to make sure we have enough of said product
+        total_qty = 0
+        for product_id_str, qty in cart_dict.items():
+            qty = int(qty)
+            if qty <= 0:
+                continue
+            total_qty += qty
+            product_id = int(product_id_str)
+
+            cursor.execute(
+                """
+                UPDATE products
+                SET inventory = inventory - ?
+                WHERE product_id = ? AND inventory >= ?
+                """,
+                (qty, product_id, qty),
+            )
+
+            if cursor.rowcount == 0:
+                conn.rollback()
+                return False, f"insufficient_inventory:{product_id}"
+        #no empty cars allowed (frontend already cheks this but just in case)
+        if total_qty <= 0:
+            conn.rollback()
+            return False, "empty_cart"
+        #generate a random code and insert into database
+        while True:
+            code = f"{random.randint(0,9999):04d}"
+            try:
+                cursor.execute(
+                    """
+                    INSERT INTO valid_codes (code, stripe_session_id, customer_email)
+                    VALUES (?, ?, ?)
+                    """,
+                    (code, session_id, customer_email),
+                )
+                break
+            except sqlite3.IntegrityError:
+                continue
+
+        conn.commit()
+        return True, "fulfilled"
+    except Exception as e:
+        conn.rollback()
+        return False, str(e)
+    finally:
+        conn.close()
+
+#this allwos us to get the email of the user from stripe and store in database
+@app.route("/api/stripe-webhook", methods=["POST"])
+def stripe_webhook():
+    if not STRIPE_WEBHOOK_SECRET:
+        return jsonify({"error": "STRIPE_WEBHOOK_SECRET is not configured"}), 500
+
+    payload = request.get_data()
+    sig_header = request.headers.get("Stripe-Signature")
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, STRIPE_WEBHOOK_SECRET
+        )
+    except ValueError:
+        return jsonify({"error": "Invalid payload"}), 400
+    except stripe.error.SignatureVerificationError:
+        return jsonify({"error": "Invalid signature"}), 400
+    #if the checkout was successfuly then we can get the email and cart metadata to get code and update inventory
+    if event["type"] == "checkout.session.completed":
+        try:
+            session = event["data"]["object"]
+
+            print(f"[WEBHOOK] session: {session}")
+
+            # StripeObject safe access
+            payment_status = getattr(session, "payment_status", None)
+            if payment_status != "paid":
+                return jsonify({}), 200
+
+            email = _session_customer_email(session)
+
+            # StripeObject safe access
+            metadata = getattr(session, "metadata", {}) or {}
+
+            if hasattr(metadata, "to_dict"):
+                metadata = metadata.to_dict()
+
+            cart_json = metadata.get("cart")
+
+            print(f"[WEBHOOK] metadata: {metadata}")
+
+            #cart_json = metadata.get("cart")
+
+            if not cart_json:
+                print("[WEBHOOK] ERROR: cart_json missing")
+                SEND_AUDIT_LOG(
+                    f"checkout.session.completed missing cart metadata session={session.id}",
+                    True,
+                )
+                return jsonify({}), 200
+
+            try:
+                cart = json.loads(cart_json)
+            except json.JSONDecodeError:
+                SEND_AUDIT_LOG(
+                    f"checkout.session.completed invalid cart JSON session={session.id}",
+                    True,
+                )
+                return jsonify({}), 200
+
+            #  use attribute, not dict access
+            ok, status = fulfill_checkout_session(session.id, cart, email)
+
+            print(f"[WEBHOOK] fulfill result: ok={ok}, status={status}")
+
+            if not ok:
+                SEND_AUDIT_LOG(
+                    f"Fulfillment failed session={session.id} status={status} email={email}",
+                    True,
+                )
+
+        except Exception as e:
+            print(f"[WEBHOOK ERROR] {e}")
+            return jsonify({"error": str(e)}), 500
+
+    return jsonify({}), 200
+
+#actual route for checkingout
 @app.route("/api/create-checkout-session", methods=["POST"])
 def create_checkout_session():
     data = request.get_json()
@@ -477,9 +653,8 @@ def create_checkout_session():
 
     conn = get_connection()
     cursor = conn.cursor()
-
+    #initial inventory cehck
     try:
-        # 1. CHECK INVENTORY
         total_amount = 0
 
         for product_id, qty in cart.items():
@@ -489,7 +664,7 @@ def create_checkout_session():
 
             cursor.execute(
                 "SELECT inventory, price, name FROM products WHERE product_id = ?",
-                (product_id,)
+                (product_id,),
             )
             result = cursor.fetchone()
 
@@ -504,24 +679,13 @@ def create_checkout_session():
                 }), 400
 
             total_amount += int(price * 100) * qty  # convert to cents
-
-        # 2. SUBTRACT INVENTORY (race-condition safe) --todo change this to only subtract once payment is successful, but for now this is easier to implement and test
-        for product_id, qty in cart.items():
-            qty = int(qty)
-            if qty <= 0:
-                continue
-
-            cursor.execute("""
-                UPDATE products
-                SET inventory = inventory - ?
-                WHERE product_id = ? AND inventory >= ?
-            """, (qty, product_id, qty))
-
-            if cursor.rowcount == 0:
-                conn.rollback()
-                return jsonify({"error": "Item just sold out"}), 400
-
-        # 3. CREATE STRIPE SESSION
+        #ensure they don't for some reason crash stripe
+        cart_meta = json.dumps(cart, separators=(",", ":"))
+        if len(cart_meta) > 500:
+            return jsonify({
+                "error": "Cart is too large for checkout (Stripe metadata limit).",
+            }), 400
+        #create teh session with the total amount and metadata of cart (so we can fulfill after payment)
         session = stripe.checkout.Session.create(
             mode="payment",
             line_items=[{
@@ -534,30 +698,17 @@ def create_checkout_session():
                 },
                 "quantity": 1,
             }],
+            #if successful they get a code if not they get an error
             success_url=f"{BASE_URL}/pages/paymentCode.html?session_id={{CHECKOUT_SESSION_ID}}",
             cancel_url=f"{BASE_URL}/pages/paymentError.html",
+            metadata={"cart": cart_meta},
         )
-
-        # 4. GENERATE CODE + STORE STRIPE SESSION
-        while True:
-            code = f"{random.randint(0,9999):04d}"
-            try:
-                cursor.execute("""
-                    INSERT INTO valid_codes (code, stripe_session_id)
-                    VALUES (?, ?)
-                """, (code, session.id))
-
-                conn.commit()
-                break
-            except sqlite3.IntegrityError:
-                continue
 
         return jsonify({
             "url": session.url
         })
 
     except Exception as e:
-        conn.rollback()
         return jsonify({"error": str(e)}), 400
 
 
