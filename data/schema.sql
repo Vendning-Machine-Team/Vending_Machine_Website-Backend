@@ -3,7 +3,7 @@ CREATE TABLE products(
     name VARCHAR(100) NOT NULL,
     price DECIMAL (10,2) NOT NULL,
     inventory INT DEFAULT 0 NOT NULL,
-    image_url TEXT DEFAULT "src/images/default.jpg"
+    image_url TEXT DEFAULT "/images/default.jpg"
 );
 CREATE TABLE action_type(
     type_id INTEGER PRIMARY KEY,
@@ -37,3 +37,8 @@ BEGIN
     DELETE FROM valid_codes WHERE created_at < datetime('now', '-1 day');
     DELETE FROM valid_codes WHERE is_used = 1;
 END;
+
+INSERT INTO products(name, price, inventory, image_url) VALUES
+('Candy', 1.50, 0, '/images/candy.jpeg'),
+('Chips', 2.00, 0, '/images/chips.jpeg'),
+('Cookies', 1.75, 0, '/images/cookies.jpeg');
