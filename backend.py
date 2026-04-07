@@ -320,11 +320,11 @@ def get_code():
 def get_products_to_buy():
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT product_id, name, price, inventory FROM products")
+    cursor.execute("SELECT product_id, name, price, inventory, image_url FROM products")
     rows = cursor.fetchall()
 
     return jsonify([
-        {"id": r[0], "name": r[1], "price": r[2], "inventory": r[3]}
+        {"id": r[0], "name": r[1], "price": r[2], "inventory": r[3], "image_url": r[4]}
         for r in rows
     ])
 
