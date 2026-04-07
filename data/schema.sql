@@ -1,8 +1,9 @@
 CREATE TABLE products(
-        product_id INTEGER PRIMARY KEY,
+    product_id INTEGER PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     price DECIMAL (10,2) NOT NULL,
-    inventory INT DEFAULT 0 NOT NULL
+    inventory INT DEFAULT 0 NOT NULL,
+    image_url TEXT DEFAULT "../images/default.jpeg"
 );
 CREATE TABLE action_type(
     type_id INTEGER PRIMARY KEY,
