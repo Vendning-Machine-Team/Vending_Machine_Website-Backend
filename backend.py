@@ -220,6 +220,24 @@ def admin_logout():
     return jsonify({"success": True})
 
 
+##used to add products to the database, TODO: implement frontend
+@app.route("/api/add-product", methods=["POST"])
+def add_product():
+    data = request.get_json()
+    name = data.get("name")
+    price = data.get("price")
+    image_url = "/images/" + name.lower() + ".jpeg"  # Assuming image is named after the product in lowercase
+
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO products (name, price, image_url)
+        VALUES (?, ?, ?)
+    """, (name, price, image_url))
+    conn.commit()
+    return jsonify({"success": True})
+
+
 ''' TOD: remove this function once stripe is implemented (this is purely for testing purposes, it generates a "stripe like" code)
 def generate_session_id():
     return "test_" + "".join(random.choices(string.ascii_letters + string.digits, k=32))
