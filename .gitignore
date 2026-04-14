@@ -7,11 +7,10 @@ node_modules/
 # Allow tracking of package.json
 !package.json
 
-# Allow tracking of dist directory
-!dist/
+
 
 #Database related files
-data/
+vm.db
 
 #ignore venv
 venv/
