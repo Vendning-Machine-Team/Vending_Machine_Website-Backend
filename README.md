@@ -2,7 +2,7 @@
 
 # Vending Machine Team Website Backend  
 ### By: Adeyemi Akanbi - [Github](https://github.com/AdeyemiAkanbi), [LinkedIn](https://www.linkedin.com/in/adeyemi-akanbi-62a1a1386/) | Prince Patel - [Github](https://github.com/IMPr1nce), [LinkedIn](https://www.linkedin.com/in/ppatel9114/) | Samantha Machado [Github](https://github.com/SamMac55), [LinkedIn](https://www.linkedin.com/in/samantha-machado-b7b5a7329/)
-Advisor: [Matthew Thomas Beck](https://github.com/matthewthomasbeck)  
+Advisor: Matthew Thomas Beck - [Github](https://github.com/matthewthomasbeck), [LinkedIn](https://www.linkedin.com/in/matthewthomasbeck/)  
 
 __Special thanks to the robot and pathfinding teams of this project__   
 __Please Consider__: If you like it __star it__!
@@ -24,7 +24,7 @@ Samantha Machado:
 Prince Patel:
 * Software Developer (*Integrated Stripe payment system*)
 
-[Matthew Beck](https://www.linkedin.com/in/matthewthomasbeck/):
+Matthew Beck:
 * Software Developer (*Created web socket to deliver messages from the frontend to the robot*)
 * Advisor (*Assisted with EC2 instance setup, collaborated to migrate website frontend and backend to separate repos*)
 
