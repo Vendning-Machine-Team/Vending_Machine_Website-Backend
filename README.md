@@ -1,3 +1,5 @@
+<img width="2184" height="732" alt="full-deployment-diagram" src="https://github.com/user-attachments/assets/c6757436-f6c6-4801-aa67-71f26c044aeb" />
+
 # Vending Machine Team Website Backend  
 Website Team: [Adeyemi](https://github.com/AdeyemiAkanbi), [Prince](https://github.com/IMPr1nce), [Samantha](https://github.com/SamMac55)  
 Advisor: [Matthew Thomas Beck](https://github.com/matthewthomasbeck)  
@@ -6,7 +8,7 @@ __Special thanks to the robot and pathfinding teams of this project__
 
 ## Tech Stack
 **Language**: Python  
-**Frameworks**: Flask, bycrypt, stripe  
+**Frameworks**: Flask, bycrypt, Stripe  
 **Database**: sqlite3  
 
 ## Basic information
