@@ -1,7 +1,7 @@
 <img width="2184" height="732" alt="full-deployment-diagram" src="https://github.com/user-attachments/assets/c6757436-f6c6-4801-aa67-71f26c044aeb" />
 
 # Vending Machine Team Website Backend  
-### By: [Adeyemi Akanbi](https://www.linkedin.com/in/adeyemi-akanbi-62a1a1386/), [Prince Patel](https://www.linkedin.com/in/ppatel9114/), [Samantha Machado](https://www.linkedin.com/in/samantha-machado-b7b5a7329/)
+### By: [Adeyemi Akanbi](https://www.linkedin.com/in/adeyemi-akanbi-62a1a1386/), [Prince Patel](https://www.linkedin.com/in/ppatel9114/), [Samantha Machado](https://www.linkedin.com/in/samantha-machado-b7b5a7329/), [Syan Shirazi](www.linkedin.com/in/syan-shirazi)
 Advisor: [Matthew Thomas Beck](https://www.linkedin.com/in/matthewthomasbeck/)  
 
 __Special thanks to the robot and pathfinding teams of this project__   
@@ -27,6 +27,9 @@ __Please Consider__: If you like it __star it__!
 [Matthew Beck](https://github.com/matthewthomasbeck):
 * Software Developer (*Created web socket to deliver messages from the frontend to the robot*)
 * Advisor (*Assisted with EC2 instance setup, collaborated to migrate website frontend and backend to separate repos*)
+
+[Syan Shirazi](https://github.com/SturdyDude):
+* Penetration Tester (*FE and BE related testing to ensure that users cannot access the BE or critical information from the FE*)
 
 ## Basic information
 The backend is a Flask application centered in backend.py that serves both API functionality and built frontend assets from ./dist. It exposes REST endpoints under /api/* for customer checkout flows and administrator operations, while also supporting SPA-style fallback routing so frontend page refreshes still resolve correctly. The application is configured through environment variables (.env) for values such as Stripe keys, webhook secrets, base URL redirects, robot listen host/port, and runtime port.
