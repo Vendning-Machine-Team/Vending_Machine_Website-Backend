@@ -8,15 +8,25 @@ __Special thanks to the robot and pathfinding teams of this project__
 
 ## Tech Stack
 **Language**: Python  
-**Frameworks**: Flask, bycrypt, Stripe  
-**Database**: sqlite3  
+**Backend Framework**: Flask (`flask`) + CORS support (`flask-cors`)  
+**Database**: SQLite (`sqlite3`) with SQL schema in `data/schema.sql`  
+**Payments**: Stripe Checkout + Stripe Webhooks (`stripe`)  
+**Security / Auth Utilities**: `bcrypt` for password hash verification  
+**Integrations / Utilities**: `requests` (Discord webhooks), `python-dotenv` (environment configuration), TCP sockets + threading (robot bridge)  
 
 ## Basic information
-The Vending Machine Website Backend handles api routes to get information from the database, 
-create stripe payment sessions, and connect directly to the Vending Machine Robot through a socket. 
+The backend is a Flask application centered in `backend.py` that serves both API functionality and built frontend assets from `./dist`. It exposes REST endpoints under `/api/*` for customer checkout flows and administrator operations, while also supporting SPA-style fallback routing so frontend page refreshes still resolve correctly. The application is configured through environment variables (`.env`) for values such as Stripe keys, webhook secrets, base URL redirects, robot listen host/port, and runtime port.
+
+Operationally, the API is organized around three main domains: product/inventory management, admin activity, and checkout fulfillment. Product and admin endpoints read/write directly to `data/vm.db` using `sqlite3`, with tables defined in `data/schema.sql` (`products`, `administrators`, `actions`, `action_type`, and `valid_codes`). Admin login verifies stored password hashes with `bcrypt`, inventory updates are logged to the actions table, and activity heartbeat endpoints support admin "active" status checks based on recent timestamps.
+
+For payment and delivery, the backend creates Stripe Checkout sessions from the cart payload and embeds cart metadata in the Stripe session. After a successful Stripe webhook callback, the server verifies the webhook signature, parses metadata, and runs idempotent fulfillment (`fulfill_checkout_session`) that atomically decrements inventory and creates a unique 4-digit vending code tied to the Stripe session. The code is later retrieved by session ID through `/api/get-code`. In parallel, the backend can send audit messages to Discord and maintain a persistent TCP robot bridge to relay commands and report robot connection status.
 
 ## Features
--API routes for getting and updating data from the database  
--Communication to robot through a socket  
--Ability to send audit logs to the team discord for live updates on changes made to inventory, path, and issues reported. 
+- Customer-facing APIs for product listing, checkout session creation, and post-payment code retrieval  
+- Stripe integration with signed webhook handling for payment confirmation and fulfillment  
+- Idempotent fulfillment flow that updates inventory and generates a unique vending code per Stripe session  
+- Admin APIs for login/logout, activity heartbeat, inventory updates, and recent action history  
+- SQLite-backed data model for products, admin users, action logs, and valid vending codes  
+- TCP robot bridge for command relay and connection-status reporting (`/api/robot-command`, `/api/robot-status`)  
+- Discord audit logging for frontend reports, inventory changes, and fulfillment-related alerts  
 
