@@ -19,7 +19,7 @@ __Please Consider__: If you like it __star it__!
 </p>
 
 **Samantha Machado ([LinkedIn](https://www.linkedin.com/in/samantha-machado-b7b5a7329/) | [GitHub](https://github.com/SamMac55)):**
-- - Software Architect *(architected backend structure)*
+- Software Architect *(architected backend structure)*
 - Database Administrator *(created Database Schema and populated tables with data)*
 - DevOps Engineer *(set up EC2 instance, collaborated to separate frontend-backend repos, migrated DNS to AWS)*
 
