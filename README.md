@@ -1,35 +1,49 @@
-<img width="2184" height="732" alt="full-deployment-diagram" src="https://github.com/user-attachments/assets/c6757436-f6c6-4801-aa67-71f26c044aeb" />
+![Final Robot Assembly](images/backend_architecture.png)
 
-# Vending Machine Team Website Backend  
-### By: [Adeyemi Akanbi](https://www.linkedin.com/in/adeyemi-akanbi-62a1a1386/), [Prince Patel](https://www.linkedin.com/in/ppatel9114/), [Samantha Machado](https://www.linkedin.com/in/samantha-machado-b7b5a7329/), [Syan Shirazi](www.linkedin.com/in/syan-shirazi)
-Advisor: [Matthew Thomas Beck](https://www.linkedin.com/in/matthewthomasbeck/)  
+# [Vending Machine Website](https://github.com/orgs/Vendning-Machine-Team/repositories) - Website Team (Backend)
+### By Samantha Machado, Prince Patel, Matthew Beck, and Syan Shirazi
 
-__Special thanks to the robot and pathfinding teams of this project__   
 __Please Consider__: If you like it __star it__!
 
 ## Tech Stack
-**Language**: Python  
-**Backend Framework**: Flask + CORS support  
-**Database**: SQLite with SQL schema in data/schema.sql    
-**Payments**: Stripe Checkout + Stripe Webhooks   
-**Security / Auth Utilities**: bcrypt for password hash verification  
-**Integrations / Utilities**: requests (Discord webhooks), python-dotenv (environment configuration), TCP sockets + threading (robot bridge)  
+- **Language**: Python
+- **Backend Framework**: Flask + CORS support
+- **Database**: SQLite with SQL schema in data/schema.sql
+- **Payments**: Stripe Checkout + Stripe Webhooks
+- **Security / Auth Utilities**: bcrypt *(for password hash verification)*
+- **Integrations / Utilities**: requests *(Discord webhooks)*, python-dotenv *(environment configuration)*, TCP sockets + threading *(robot bridge)*
 
 ## Roles
-[Samantha Machado](https://github.com/SamMac55):
-* Database Designer (*Created Database Schema and populated tables with data*)
-* Software Developer (*Added communication between frontend and backend via API requests*)
-* Deployment Manager (*Set up EC2 instance, collaborated to separate frontend-backend repos, migrated DNS to AWS*)
+<p align="left">
+  <img src="images/samantha.jpg" width="20%" alt="Samantha Machado" />
+</p>
 
-[Prince Patel](https://github.com/IMPr1nce):
-* Software Developer (*Integrated Stripe payment system*)
+**Samantha Machado ([LinkedIn](https://www.linkedin.com/in/samantha-machado-b7b5a7329/) | [GitHub](https://github.com/SamMac55)):**
+- - Software Architect *(architected backend structure)*
+- Database Administrator *(created Database Schema and populated tables with data)*
+- DevOps Engineer *(set up EC2 instance, collaborated to separate frontend-backend repos, migrated DNS to AWS)*
 
-[Matthew Beck](https://github.com/matthewthomasbeck):
-* Software Developer (*Created web socket to deliver messages from the frontend to the robot*)
-* Advisor (*Assisted with EC2 instance setup, collaborated to migrate website frontend and backend to separate repos*)
+<p align="left">
+  <img src="images/prince.jpg" width="20%" alt="Prince Patel" />
+</p>
 
-[Syan Shirazi](https://github.com/SturdyDude):
-* Penetration Tester (*FE and BE related testing to ensure that users cannot access the BE or critical information from the FE*)
+**Prince Patel ([LinkedIn](https://www.linkedin.com/in/ppatel9114/) | [GitHub](https://github.com/IMPr1nce)):**
+- Software Engineer *(integrated Stripe payment system)*
+
+<p align="left">
+  <img src="images/matthew.jpg" width="20%" alt="Matthew Beck" />
+</p>
+
+**Matthew Beck ([LinkedIn](https://www.linkedin.com/in/matthewthomasbeck/) | [GitHub](https://github.com/matthewthomasbeck) | [Website](https://www.matthewthomasbeck.com)):**
+- Software Engineer *(created web socket to deliver messages from the frontend to the robot)*
+- DevOps Engineer *(assisted with EC2 instance setup, collaborated to migrate website frontend and backend to separate repos)*
+
+<p align="left">
+  <img src="images/syan.jpg" width="20%" alt="Syan Shirazi" />
+</p>
+
+**Syan Shirazi ([LinkedIn](www.linkedin.com/in/syan-shirazi) | [GitHub](https://github.com/SturdyDude))**
+- Penetration Tester *(frontend and backend related testing to ensure that users cannot access the backend or critical information from the frontend)*
 
 ## Basic information
 The backend is a Flask application centered in backend.py that serves both API functionality and built frontend assets from ./dist. It exposes REST endpoints under /api/* for customer checkout flows and administrator operations, while also supporting SPA-style fallback routing so frontend page refreshes still resolve correctly. The application is configured through environment variables (.env) for values such as Stripe keys, webhook secrets, base URL redirects, robot listen host/port, and runtime port.
