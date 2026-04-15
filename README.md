@@ -1,7 +1,7 @@
 <img width="2184" height="732" alt="full-deployment-diagram" src="https://github.com/user-attachments/assets/c6757436-f6c6-4801-aa67-71f26c044aeb" />
 
 # Vending Machine Team Website Backend  
-Website Team: [Adeyemi](https://github.com/AdeyemiAkanbi), [Prince](https://github.com/IMPr1nce), [Samantha](https://github.com/SamMac55)  
+### By: Adeyemi Akanbi - [Github](https://github.com/AdeyemiAkanbi), [LinkedIn](https://www.linkedin.com/in/adeyemi-akanbi-62a1a1386/) | Prince Patel - [Github](https://github.com/IMPr1nce), [LinkedIn](https://www.linkedin.com/in/ppatel9114/) | Samantha Machado [Github](https://github.com/SamMac55), [LinkedIn](https://www.linkedin.com/in/samantha-machado-b7b5a7329/)
 Advisor: [Matthew Thomas Beck](https://github.com/matthewthomasbeck)  
 
 __Special thanks to the robot and pathfinding teams of this project__   
