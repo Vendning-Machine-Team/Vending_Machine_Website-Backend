@@ -1,8 +1,8 @@
 <img width="2184" height="732" alt="full-deployment-diagram" src="https://github.com/user-attachments/assets/c6757436-f6c6-4801-aa67-71f26c044aeb" />
 
 # Vending Machine Team Website Backend  
-### By: Adeyemi Akanbi - [Github](https://github.com/AdeyemiAkanbi), [LinkedIn](https://www.linkedin.com/in/adeyemi-akanbi-62a1a1386/) | Prince Patel - [Github](https://github.com/IMPr1nce), [LinkedIn](https://www.linkedin.com/in/ppatel9114/) | Samantha Machado [Github](https://github.com/SamMac55), [LinkedIn](https://www.linkedin.com/in/samantha-machado-b7b5a7329/)
-Advisor: Matthew Thomas Beck - [Github](https://github.com/matthewthomasbeck), [LinkedIn](https://www.linkedin.com/in/matthewthomasbeck/)  
+### By: [Adeyemi Akanbi](https://www.linkedin.com/in/adeyemi-akanbi-62a1a1386/), [Prince Patel](https://www.linkedin.com/in/ppatel9114/), [Samantha Machado](https://www.linkedin.com/in/samantha-machado-b7b5a7329/)
+Advisor: [Matthew Thomas Beck](https://www.linkedin.com/in/matthewthomasbeck/)  
 
 __Special thanks to the robot and pathfinding teams of this project__   
 __Please Consider__: If you like it __star it__!
@@ -16,15 +16,15 @@ __Please Consider__: If you like it __star it__!
 **Integrations / Utilities**: requests (Discord webhooks), python-dotenv (environment configuration), TCP sockets + threading (robot bridge)  
 
 ## Roles
-Samantha Machado:
+[Samantha Machado](https://github.com/SamMac55):
 * Database Designer (*Created Database Schema and populated tables with data*)
 * Software Developer (*Added communication between frontend and backend via API requests*)
 * Deployment Manager (*Set up EC2 instance, collaborated to separate frontend-backend repos, migrated DNS to AWS*)
 
-Prince Patel:
+[Prince Patel](https://github.com/IMPr1nce):
 * Software Developer (*Integrated Stripe payment system*)
 
-Matthew Beck:
+[Matthew Beck](https://github.com/matthewthomasbeck):
 * Software Developer (*Created web socket to deliver messages from the frontend to the robot*)
 * Advisor (*Assisted with EC2 instance setup, collaborated to migrate website frontend and backend to separate repos*)
 
