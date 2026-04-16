@@ -45,19 +45,12 @@ __Please Consider__: If you like it __star it__!
 **Syan Shirazi ([LinkedIn](www.linkedin.com/in/syan-shirazi) | [GitHub](https://github.com/SturdyDude))**
 - Penetration Tester *(frontend and backend related testing to ensure that users cannot access the backend or critical information from the frontend)*
 
-## Basic information
-The backend is a Flask application centered in backend.py that serves both API functionality and built frontend assets from ./dist. It exposes REST endpoints under /api/* for customer checkout flows and administrator operations, while also supporting SPA-style fallback routing so frontend page refreshes still resolve correctly. The application is configured through environment variables (.env) for values such as Stripe keys, webhook secrets, base URL redirects, robot listen host/port, and runtime port.
+## Overview
+The backend is a Flask application centered in backend.py that serves both API functionality and built [frontend](https://github.com/Vendning-Machine-Team/Vending_Machine_Website-Frontend) assets from ./dist, exposing REST endpoints under /api/* for customer checkout flows, administrator operations, product listing, checkout session creation, and post-payment code retrieval. It supports SPA-style fallback routing for frontend refreshes and is configured via environment variables (.env) for Stripe keys, webhook secrets, base URL redirects, robot host/port, and runtime settings.
 
-Operationally, the API is organized around three main domains: product/inventory management, admin activity, and checkout fulfillment. Product and admin endpoints read/write directly to data/vm.db using sqlite3, with tables defined in data/schema.sql (products, administrators, actions, action_type, and valid_codes). Admin login verifies stored password hashes with bcrypt, inventory updates are logged to the actions table, and activity heartbeat endpoints support admin "active" status checks based on recent timestamps.
+Operationally, the API is organized around three domains: product/inventory management, admin activity, and checkout fulfillment, backed by a SQLite database (data/vm.db) with schema defined in data/schema.sql (products, administrators, actions, action_type, valid_codes). Admin authentication uses bcrypt for password verification, inventory updates are logged to the actions table, heartbeat endpoints track admin activity, and recent action history is exposed for monitoring.
 
-For payment and delivery, the backend creates Stripe Checkout sessions from the cart payload and embeds cart metadata in the Stripe session. After a successful Stripe webhook callback, the server verifies the webhook signature, parses metadata, and runs idempotent fulfillment (fulfill_checkout_session) that atomically decrements inventory and creates a unique 4-digit vending code tied to the Stripe session. The code is later retrieved by session ID through /api/get-code. In parallel, the backend can send audit messages to Discord and maintain a persistent TCP robot bridge to relay commands and report robot connection status.
+For payments and delivery, the backend integrates with Stripe to create Checkout sessions from cart payloads, embedding metadata for downstream processing and handling signed webhook callbacks for payment confirmation. Fulfillment is idempotent (fulfill_checkout_session), ensuring atomic inventory decrementation and generation of a unique 4-digit vending code per session, retrievable via /api/get-code.
 
-## Features
-- Customer-facing APIs for product listing, checkout session creation, and post-payment code retrieval  
-- Stripe integration with signed webhook handling for payment confirmation and fulfillment  
-- Idempotent fulfillment flow that updates inventory and generates a unique vending code per Stripe session  
-- Admin APIs for login/logout, activity heartbeat, inventory updates, and recent action history  
-- SQLite-backed data model for products, admin users, action logs, and valid vending codes  
-- TCP robot bridge for command relay and connection-status reporting (/api/robot-command, /api/robot-status)  
-- Discord audit logging for frontend reports, inventory changes, and fulfillment-related alerts  
+Additional system features include a persistent TCP [robot](https://github.com/Vendning-Machine-Team/Vending_Machine_Robot-Hardware) bridge for command relay and connection status reporting (/api/robot-command, /api/robot-status), and Discord-based audit logging for frontend reports, inventory changes, and fulfillment-related events.
 
