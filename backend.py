@@ -17,7 +17,7 @@ BASE_URL = os.getenv("BASE_URL")
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
 webhook = os.getenv("DISCORD_WEBHOOK")
-
+DATABASE_PATH = "data/vm.db"
 def get_connection():
     return sqlite3.connect("data/vm.db", check_same_thread=False)
 
@@ -220,22 +220,22 @@ def admin_logout():
     return jsonify({"success": True})
 
 
-##used to add products to the database, TODO: implement frontend
-@app.route("/api/add-product", methods=["POST"])
-def add_product():
-    data = request.get_json()
-    name = data.get("name")
-    price = data.get("price")
-    image_url = "/images/" + name.lower() + ".jpeg"  # Assuming image is named after the product in lowercase
+# ##used to add products to the database, TODO: implement frontend
+# @app.route("/api/add-product", methods=["POST"])
+# def add_product():
+#     data = request.get_json()
+#     name = data.get("name")
+#     price = data.get("price")
+#     image_url = "/images/" + name.lower() + ".jpeg"  # Assuming image is named after the product in lowercase
 
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("""
-        INSERT INTO products (name, price, image_url)
-        VALUES (?, ?, ?)
-    """, (name, price, image_url))
-    conn.commit()
-    return jsonify({"success": True})
+#     conn = get_connection()
+#     cursor = conn.cursor()
+#     cursor.execute("""
+#         INSERT INTO products (name, price, image_url)
+#         VALUES (?, ?, ?)
+#     """, (name, price, image_url))
+#     conn.commit()
+#     return jsonify({"success": True})
 
 
 ''' TOD: remove this function once stripe is implemented (this is purely for testing purposes, it generates a "stripe like" code)
@@ -662,6 +662,63 @@ def stripe_webhook():
             return jsonify({"error": str(e)}), 500
 
     return jsonify({}), 200
+
+### adding the products to database
+@app.route("/api/add-product", methods=["POST"])
+def add_product():
+    data = request.get_json()
+    name = data.get("new_product_name").strip()
+    price = data.get("new_product_price")
+    inventory = 0
+    image_url = "/images/default.jpg"
+    
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO products (name, price, inventory, image_url)
+            VALUES (?, ?, ?, ?)
+        """, (name, price, inventory, image_url))
+        conn.commit()
+        new_product_id = cursor.lastrowid
+        SEND_AUDIT_LOG(f"Added new product: {name} (ID: {new_product_id}) with price ${price} and inventory {inventory}", False)
+        conn.close()
+    except Exception as e:
+        print(f"Error adding product: {e}")
+        return jsonify({"error": str(e)}), 500
+
+    
+    return jsonify({"success": True, "product_id": new_product_id, "name": name, "price": price, "inventory": inventory, "image_url": image_url})
+
+@app.route("/api/remove-product", methods=["POST"])
+def remove_product():
+    data = request.get_json(silent=True) or {}
+    product_id = data.get("product_id")
+
+    if not product_id:
+        return jsonify({"success": False, "error": "Product ID is required"}), 400
+
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("DELETE FROM products WHERE product_id = ?", (product_id,))
+        conn.commit()
+
+        if cursor.rowcount == 0:
+            conn.close()
+            return jsonify({"success": False, "error": "Product not found"}), 404
+
+        conn.close()
+        print("Removed product:", product_id)
+
+        return jsonify({"success": True}), 200
+
+    except Exception as e:
+        print("Database error:", e)
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 
 #actual route for checkingout
 @app.route("/api/create-checkout-session", methods=["POST"])
