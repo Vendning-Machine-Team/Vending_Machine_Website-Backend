@@ -1,6 +1,6 @@
 ![Final Robot Assembly](images/backend_architecture.png)
 
-# [Vending Machine Website](https://github.com/orgs/Vendning-Machine-Team/repositories) - Website Team (Backend)
+# [Vending Machine Website](https://github.com/orgs/Vendning-Machine-Team) - Website Team (Backend)
 ### By Samantha Machado, Prince Patel, Matthew Beck, and Syan Shirazi
 
 __Please Consider__: If you like it __star it__!
